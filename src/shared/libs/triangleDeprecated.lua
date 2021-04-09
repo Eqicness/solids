@@ -26,7 +26,7 @@ function triangle:refresh(fullRefresh)
 		end
 	end
 
-	local cfA, sizeA, cfB, sizeB = triUtil.calc3dTriangle2(self.points[1], self.points[2], self.points[3], self.doOffset)
+	local cfA, sizeA, cfB, sizeB = triUtil.calc3dTriangle(self.points[1], self.points[2], self.points[3], self.doOffset)
 	self._tris[1].CFrame, self._tris[1].Size, self._tris[1].Parent = cfA, sizeA, self._parent
 	self._tris[2].CFrame, self._tris[2].Size, self._tris[2].Parent = cfB, sizeB, self._parent
 end

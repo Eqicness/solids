@@ -1,8 +1,10 @@
 local get = require(game:GetService("ReplicatedStorage").Shared.get)
 
 local maid = get("*s.libs.maid")
-local triUtil = get("*s.util.triUtil")
+local calc3dTriangle = get("*s.util.triUtil").calc3dTriangle
 local rightTriangle = get("*a.RightTriangle")
+
+
 
 local triangle = {}
 triangle.__index = triangle
@@ -26,7 +28,7 @@ function triangle:refresh(fullRefresh)
 		end
 	end
 
-	local cfA, sizeA, cfB, sizeB = triUtil.calc3dTriangle2(self.vertices[1]:getWorldPosition(), self.vertices[2]:getWorldPosition(), self.vertices[3]:getWorldPosition(), self.doOffset)
+	local cfA, sizeA, cfB, sizeB = calc3dTriangle(self.vertices[1]:getWorldPosition(), self.vertices[2]:getWorldPosition(), self.vertices[3]:getWorldPosition(), self.doOffset)
 	self._tris[1].CFrame, self._tris[1].Size, self._tris[1].Parent = cfA, sizeA, self._parent
 	self._tris[2].CFrame, self._tris[2].Size, self._tris[2].Parent = cfB, sizeB, self._parent
 end

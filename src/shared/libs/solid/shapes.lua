@@ -30,81 +30,28 @@ shapes["octahedron"] = function(solid)
 end
 
 shapes["icosahedron"] = function(solid)
-	local GOLDEN_RATIO = (1+math.sqrt(5))/2
-
-	-- used for determining the ratios of the icosahedron.
-	local FULL = 0.8506509 -- GOLDEN_RATIO/math.sqrt(GOLDEN_RATIO^2 + 1)
-	local SPACE = FULL/GOLDEN_RATIO
-	-- FULL^2 + SPACE^2 = 1, pythag theorum so that distance to any vertex is 1 (1*RADIUS)
+	-- taken from https://devforum.roblox.com/t/procedural-planets/825026. super helpful, thanks
+	local X = 0.525731112119133606 * solid.radius
+	local Z = 0.850650808352039932 * solid.radius
+	local N = 0
 
 	local vertices = {
-		vertex.new(solid, 0, 0, 0)
-	}
-	local triangles = {}
+		vertex.new(solid, -X,N,Z); vertex.new(solid, X,N,Z); vertex.new(solid, -X,N,-Z); vertex.new(solid, X,N,-Z);
+		vertex.new(solid, N,Z,X); vertex.new(solid, N,Z,-X); vertex.new(solid, N,-Z,X); vertex.new(solid, N,-Z,-X);
+		vertex.new(solid, Z,X,N); vertex.new(solid, -Z,X, N); vertex.new(solid, Z,-X,N); vertex.new(solid, -Z,-X, N);
+	};
 
-	local function p()
-		return Vector3.new()
-	end
-	
-	local function _()
-		local triPoints = {}
-	
-		-- generates 12 sides
-	
-		local offsets = {
-			CFrame.new(0, FULL, SPACE),
-			CFrame.new(0, FULL, -SPACE),
-			CFrame.new(FULL, SPACE, 0)
-		}
-		local origin = CFrame.new()
-	
-		
-		for g = -1, 1, 2 do
-			for i = 1, 6 do
-				local points = {}
-				for _, offset in pairs(offsets) do
-					table.insert(points, p((origin*offset).Position))
-				end
-				table.insert(triPoints, points)
-				origin = origin*CFrame.Angles(math.pi/2*(i%2==0 and 1 or -1), math.pi/2*(i%2==0 and 1 or -1)*g, 0)
-			end
-			origin = CFrame.Angles(0, math.pi, math.pi)
-		end
-	
-		-- generates remaining 8 corner sides
-		offsets = {
-			CFrame.new(0, FULL, SPACE),
-			CFrame.new(FULL, SPACE, 0),
-			CFrame.new(SPACE, 0, FULL)
-		}
-		origin = CFrame.new()
-	
-		for i = 1, 4 do
-			local points = {}
-			for _, offset in pairs(offsets) do
-				table.insert(points, p((origin*offset).Position))
-			end
-			table.insert(triPoints, points)
-			origin = origin*CFrame.Angles(math.pi, math.pi*(i%2==0 and 0 or 1), math.pi*(i%2==0 and 1 or 0))
-		end
-	
-		offsets = {
-			CFrame.new(0, SPACE, FULL),
-			CFrame.new(SPACE, FULL, 0),
-			CFrame.new(FULL, 0, SPACE)
-		}
-		origin = CFrame.Angles(math.pi/2, 0, 0)
-	
-		for i = 1, 4 do
-			local points = {}
-			for _, offset in pairs(offsets) do
-				table.insert(points, p((origin*offset).Position))
-			end
-			table.insert(triPoints, points)
-			origin = origin*CFrame.Angles(-math.pi, math.pi*(i%2==0 and 1 or 0), math.pi*(i%2==0 and 0 or 1))
-		end
-	
-		return triPoints
+	local TriSet = {
+		{0,4,1};{0,9,4};{9,5,4};{4,5,8};{4,8,1};
+		{8,10,1};{8,3,10};{5,3,8};{5,2,3};{2,7,3};
+		{7,10,3};{7,6,10};{7,11,6};{11,0,6};{0,1,6};
+		{6,1,10};{9,0,11};{9,11,2};{9,2,5};{7,2,11};
+	};
+
+	local triangles = {}
+	for _, vertIndices in pairs(TriSet) do
+		local vertA, vertB, vertC = vertices[vertIndices[1]+1], vertices[vertIndices[2]+1], vertices[vertIndices[3]+1]
+		table.insert(triangles, triangle.new(vertA, vertB, vertC, solid._parent))
 	end
 
 	return vertices, triangles

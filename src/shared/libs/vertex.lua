@@ -15,6 +15,9 @@ function vertex:getWorldPosition()
 end
 
 function vertex:setPosition(v3)
+	if not self.originalPosition then
+		self.originalPosition = self.position
+	end
 	self.position = v3
 
 	if self.maid.part then

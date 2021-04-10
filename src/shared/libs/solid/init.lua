@@ -25,16 +25,27 @@ function solid:hideVertices()
 	end
 end
 
-function solid:subdivideTriangle(tri)
+function solid:newVertex(pos)
+	for _, vert in pairs(self.vertices) do
+		if vert.position == pos or vert.position:FuzzyEq(pos) then
+			return vert
+		end
+	end
+
+	return vertex.new(self, pos)
+end
+
+function solid:subdivideTriangle(tri, levels)
 	local newVertices = {}
-	newVertices[1] = vertex.new(self, (tri.vertices[1].position+tri.vertices[2].position)/2)
-	newVertices[2] = vertex.new(self, (tri.vertices[2].position+tri.vertices[3].position)/2)
-	newVertices[3] = vertex.new(self, (tri.vertices[1].position+tri.vertices[3].position)/2)
+	newVertices[1] = (tri.vertices[1].position+tri.vertices[2].position)/2
+	newVertices[2] = (tri.vertices[2].position+tri.vertices[3].position)/2
+	newVertices[3] = (tri.vertices[1].position+tri.vertices[3].position)/2
 
 	-- project vertices onto sphere
 	-- this slightly distorts triangles, losing equilateralism (is that even a word)
-	for _, vert in pairs(newVertices) do
-		vert:setPosition(vert.position.Unit * self.radius)
+	for i, pos in pairs(newVertices) do
+		pos = pos.Unit * self.radius
+		newVertices[i] = self:newVertex(pos)
 	end
 
 	return newVertices, {
@@ -45,26 +56,30 @@ function solid:subdivideTriangle(tri)
 	}
 end
 
-function solid:subdivide(levels)
-	if levels and levels > 1 then
-		for _ = 1, levels do
-			self:subdivide()
-		end
-	else
-		print('subdiving once')
-		local allNewTris = {}
-		for i, oldTri in pairs(self.triangles) do
-			local newVerts, newTris = self:subdivideTriangle(oldTri)
-			for _, vert in pairs(newVerts) do
+function solid:_subdivide()
+	local allNewTris = {}
+	for i, oldTri in pairs(self.triangles) do
+		local newVerts, newTris = self:subdivideTriangle(oldTri)
+		for _, vert in pairs(newVerts) do
+			if not table.find(self.vertices, vert) then
 				table.insert(self.vertices, vert)
 			end
-			for _, tri in pairs(newTris) do
-				table.insert(allNewTris, tri)
-			end
-			oldTri:Destroy()
-			self.triangles[i] = nil
 		end
-		self.triangles = allNewTris
+		for _, tri in pairs(newTris) do
+			table.insert(allNewTris, tri)
+		end
+		oldTri:Destroy()
+		self.triangles[i] = nil
+	end
+	self.triangles = allNewTris
+end
+
+function solid:subdivide(levels)
+	for _ = 1, (levels or 1) do
+		self:_subdivide()
+	end
+	for _, tri in pairs(self.triangles) do
+		tri:refresh()
 	end
 end
 
@@ -73,11 +88,40 @@ function solid:setOrigin(v3)
 	self.moved:Fire()
 end
 
-function solid:randomize(amount)
-	local max = 10000 + amount * 10000
+function solid:setNoise(scale, amplitude, octaves, persistence)
+	local lowest = 100
+	local highest = -100
 	for _, vert in pairs(self.vertices) do
-		vert:setPosition(vert.position.Unit*(math.random(10000, max)/10000)*self.radius)
+		if vert.originalPosition then
+			-- bypassing setPos because it's going to be used again below. no need to do all the refreshes.
+			vert.position = vert.originalPosition
+		end
+		
+		if amplitude > 0 then
+			-- Noise
+			scale = math.min(scale or 0.5, 1)
+			amplitude = amplitude or 10
+			octaves = math.max(octaves or 1, 1)
+			persistence = persistence or 0.5
+
+			local pos = vert:getWorldPosition()
+			-- long/lat method produces a seam because of the range of atan2
+			-- local pos = vert.position
+			-- local long, lat = math.deg(math.atan2(pos.Unit.Z, pos.Unit.X)), math.deg(math.acos(Vector3.new(0, 1, 0):Dot(pos.Unit)))
+			local noise = 0
+			for i = 0, octaves-1 do
+				noise += math.noise(pos.X/(amplitude*persistence^i), pos.Y/(amplitude*persistence^i), pos.Z/(amplitude*persistence^i))
+			end
+
+			local offset = math.clamp((noise+1)/2, 0, 1)*scale
+			-- lowest = math.min(lowest, offset)
+			-- highest = math.max(highest, offset)
+			vert:setPosition(vert.position.Unit*(1-offset)*self.radius)
+		else
+			vert:setPosition(vert.position)
+		end
 	end
+	print(lowest, highest)
 end
 
 function solid.new(shape, origin, radius, parent)

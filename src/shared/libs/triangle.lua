@@ -4,8 +4,6 @@ local maid = get("*s.libs.maid")
 local calc3dTriangle = get("*s.util.triUtil").calc3dTriangle
 local rightTriangle = get("*a.RightTriangle")
 
-
-
 local triangle = {}
 triangle.__index = triangle
 
